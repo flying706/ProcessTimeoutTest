@@ -57,11 +57,12 @@ public class Main {
             public Integer call() throws Exception {
                 Process process = builder.start();
                 pkeep = process;
+                /*为什么加上报错？
                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                 readerKeep = reader;
                 String line;
                 while ((line = reader.readLine()) != null)
-                    System.out.println("tasklist: " + line);
+                    System.out.println("tasklist: " + line);*/
                 return process.waitFor();
             }
         });
@@ -77,12 +78,13 @@ public class Main {
             e.printStackTrace();
         } catch (TimeoutException e) {
             e.printStackTrace();
+            /*为什么加上报错？
             try {
                 System.out.println(readerKeep.readLine());
                 readerKeep.close();
             } catch (IOException e1) {
                 e1.printStackTrace();
-            }
+            }*/
             pkeep.destroy();
         }finally {
             System.out.println("shutdown");
