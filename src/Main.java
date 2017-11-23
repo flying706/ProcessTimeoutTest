@@ -1,94 +1,95 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.util.Set;
 import java.util.concurrent.*;
 
 public class Main {
-
-    /*private static Process tlp = null;
-    private static FutureTask ft;
-    public static void main1(String[] args) throws Exception {
-        try {
-            int returnCode = timedCall(new Callable<Integer>() {
-                public Integer call() throws Exception {
-                    Process process = Runtime.getRuntime().exec("mount -t nfs 192.168.1.174:/test");
-                    //Process process = Runtime.getRuntime().exec("notepad.exe");
-                    tlp = process;
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                    String line;
-                    while ((line = reader.readLine()) != null)
-                        System.out.println("tasklist: " + line);
-                    return process.waitFor();
-                }
-            }, 5l, TimeUnit.SECONDS);
-            System.out.println("ok");
-        } catch (TimeoutException e) {
-            System.out.println("timeout");
-            ft.cancel(true);
-            tlp.destroy();
-            SINGL_THREAD.shutdown();
-            System.out.println("done");
-        }finally {
-            System.out.println("finally");
-
-        }
-    }
-
-    private static  ExecutorService SINGL_THREAD = Executors.newSingleThreadExecutor();
-    private static final ExecutorService THREAD_POOL = Executors.newCachedThreadPool();
-
-    private static <T> T timedCall(Callable<T> c, long timeout, TimeUnit timeUnit)
-            throws InterruptedException, ExecutionException, TimeoutException
-    {
-        FutureTask<T> task = new FutureTask<T>(c);
-        SINGL_THREAD.execute(task);
-        ft=task;
-        return task.get(timeout, timeUnit);
-    }*/
-
 
     private static Process pkeep;
     private static BufferedReader readerKeep;
     public static void main(String[] args) {
         ExecutorService SINGLE_THREAD = Executors.newSingleThreadExecutor();
-        final ProcessBuilder builder = new ProcessBuilder("ping.exe www.baidu.com");
-        //final ProcessBuilder builder = new ProcessBuilder("/bin/sh","-c","/mountshells/mountshell.sh /data/data8 192.168.1.174:/test");
+        final ProcessBuilder builder = new ProcessBuilder("/bin/sh","-c","/shell/mountshell.sh /testnfs 192.168.1.174:/test");
         FutureTask<Integer> task = new FutureTask<Integer>(new Callable<Integer>(){
             public Integer call() throws Exception {
                 Process process = builder.start();
                 pkeep = process;
-                /*为什么加上报错？
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                readerKeep = reader;
-                String line;
-                while ((line = reader.readLine()) != null)
-                    System.out.println("tasklist: " + line);*/
-                return process.waitFor();
+
+                /*一般人都这样写，结果。。。。程序结束不了
+                BufferedReader reader = null;
+                try {
+                    reader = new BufferedReader(new InputStreamReader(process.getInputStream(),"gbk"));
+                    readerKeep = reader;
+                    String line;
+                    System.out.println("readLine");
+                    while ((line = reader.readLine()) != null){
+                        System.out.println("tasklist: " + line);
+                        System.out.println("readLineRepeat");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }*/
+                //重点，读取process输出的信息遇到阻塞怎么办？像上边这样肯定是不行的，阻塞的线程如果不是守护线程 是无法随着程序一起结束的，会一直阻碍整个程序结束
+                //这里将产生阻塞的代码提出来，作为一个守护线程，问题完美解决
+                PrintProcessMsg ppm = new PrintProcessMsg(process);
+                ppm.setDaemon(true);
+                ppm.start();
+
+                System.out.println("waitFor");
+                System.out.println(Thread.currentThread().getName());
+                int i = process.waitFor();
+
+
+                return i;
             }
         });
-        System.out.println("task excute");
         SINGLE_THREAD.execute(task);
 
         try {
-            System.out.println("task get");
-            task.get(5l, TimeUnit.SECONDS);
+            task.get(3l, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
             e.printStackTrace();
-            /*为什么加上报错？
-            try {
-                System.out.println(readerKeep.readLine());
-                readerKeep.close();
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            }*/
+            //真正的阻塞是不会被该语句干掉的
+            task.cancel(true);
+
             pkeep.destroy();
         }finally {
-            System.out.println("shutdown");
             SINGLE_THREAD.shutdown();
         }
     }
+
+
+    static class PrintProcessMsg extends Thread{
+        private Process process;
+        PrintProcessMsg(Process process){
+            this.process = process;
+        }
+        public void run(){
+            BufferedReader reader = null;
+            try {
+                reader = new BufferedReader(new InputStreamReader(process.getInputStream(),"gbk"));
+                readerKeep = reader;
+                String line;
+                System.out.println("readLine");
+                while ((line = reader.readLine()) != null){
+                    System.out.println("tasklist: " + line);
+                    System.out.println("readLineRepeat");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+    }
+
+
 }
