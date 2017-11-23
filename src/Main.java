@@ -58,11 +58,15 @@ public class Main {
         } catch (TimeoutException e) {
             e.printStackTrace();
             //真正的阻塞是不会被该语句干掉的
+            System.out.println("尝试中断用来执行Process的线程");
             task.cancel(true);
-
+            System.out.println("关闭process");
             pkeep.destroy();
+            System.out.println("关闭process完成");
         }finally {
+            System.out.println("关闭ExecutorService");
             SINGLE_THREAD.shutdown();
+            System.out.println("关闭ExecutorService完成");
         }
     }
 
@@ -78,10 +82,8 @@ public class Main {
                 reader = new BufferedReader(new InputStreamReader(process.getInputStream(),"gbk"));
                 readerKeep = reader;
                 String line;
-                System.out.println("readLine");
                 while ((line = reader.readLine()) != null){
                     System.out.println("tasklist: " + line);
-                    System.out.println("readLineRepeat");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
