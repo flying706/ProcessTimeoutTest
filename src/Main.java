@@ -50,9 +50,9 @@ public class Main {
     private static Process pkeep;
     private static BufferedReader readerKeep;
     public static void main(String[] args) {
-        ExecutorService SINGL_THREAD = Executors.newSingleThreadExecutor();
-        //final ProcessBuilder builder = new ProcessBuilder("notepad.exe");
-        final ProcessBuilder builder = new ProcessBuilder("/bin/sh","-c","/mountshells/mountshell.sh /data/data8 192.168.1.174:/test");
+        ExecutorService SINGLE_THREAD = Executors.newSingleThreadExecutor();
+        final ProcessBuilder builder = new ProcessBuilder("ping.exe www.baidu.com");
+        //final ProcessBuilder builder = new ProcessBuilder("/bin/sh","-c","/mountshells/mountshell.sh /data/data8 192.168.1.174:/test");
         FutureTask<Integer> task = new FutureTask<Integer>(new Callable<Integer>(){
             public Integer call() throws Exception {
                 Process process = builder.start();
@@ -67,7 +67,7 @@ public class Main {
             }
         });
         System.out.println("task excute");
-        SINGL_THREAD.execute(task);
+        SINGLE_THREAD.execute(task);
 
         try {
             System.out.println("task get");
@@ -88,7 +88,7 @@ public class Main {
             pkeep.destroy();
         }finally {
             System.out.println("shutdown");
-            SINGL_THREAD.shutdown();
+            SINGLE_THREAD.shutdown();
         }
     }
 }
